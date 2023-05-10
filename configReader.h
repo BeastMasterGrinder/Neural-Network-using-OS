@@ -19,6 +19,10 @@ struct NeuralNetworkConfig {
     void read(const std::string& filename);
     void print();
     int NHiddenLayers();
+    int NNeuronsInLayer()
+    {
+        return inputLayerWeights[0].size();
+    }
 };
 
 void NeuralNetworkConfig::read(const std::string& filename) {

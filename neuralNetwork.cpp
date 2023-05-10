@@ -1,25 +1,16 @@
 // Nueral Network Implementation
 
 #include <iostream>
-#include <fstream>
-#include <sstream>
 #include <string>
 #include <vector>
 #include <pthread.h>
 #include <unistd.h>
 #include "configReader.h"
+#include "layers.h"
 
 
 using namespace std;
 
-
-class Layer
-{
-    
-
-
-
-};
 
 
 //Global Config
@@ -30,8 +21,12 @@ int main()
   
     // NeuralNetwork nn(config.inputLayerWeights, config.hiddenLayerWeights, config.outputLayerWeights);
 
-    config.print();
+    // config.print();
 
+
+    //semaphore a layer
+    sem_t layerSem;
+    sem_init(&layerSem, 0, 0);
 
     //making a process for each layer
 
@@ -42,6 +37,33 @@ int main()
         {
             //child process
             cout << "Child process " << i << " created" << endl;
+            // sleep(1);
+            cout.flush();
+
+            //create a layer object
+            Layer l;
+
+            //set up the layer
+            l.setUpLayer(config.hiddenLayerWeights[i]);
+
+
+            //print the layer
+
+            // l.printLayer();
+
+            l.runNeuronThreads();
+
+            
+
+            sem_post(&layerSem);
+
+
+
+
+            
+
+
+
             
 
 
@@ -55,6 +77,11 @@ int main()
         else if(pid > 0)
         {
             //parent process
+            //wait for the child process to finish
+            sem_wait(&layerSem);
+            // cout << "Child process " << i << " finished" << endl;
+            // cout.flush();
+
 
 
             
