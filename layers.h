@@ -18,7 +18,8 @@ public:
 class Layer {
 public:
     vector<Neurons> neurons;
-    static vector<sem_t*> sems;  // Define the static member variable
+    // static vector<sem_t*> sems;  // Define the static member variable
+    sem_t threadSem;
 
     void setUpLayer(const vector<vector<double>>& LayerWeights) {
         for (const auto& weights : LayerWeights) {
@@ -29,7 +30,7 @@ public:
     }
 
     void printLayer() {
-        cout << "Printing Layer" << endl;
+        cout << "Printing Layer " <<&neurons<< endl;
         for (const auto& neuron : neurons) {
             for (const auto& weight : neuron.weights) {
                 cout << weight << " ";
@@ -39,14 +40,27 @@ public:
     }
 
     void runNeuronThreads() {
+      
+      
+      
         pthread_t threads[neurons.size()];
 
-        // Create a semaphore for each neuron
-        for (int i = 0; i < neurons.size(); i++) {
-            sem_t* sem = new sem_t;
-            sem_init(sem, 0, 0);
-            sems.push_back(sem);
-        }
+        cout<<"Number of threads: "<<neurons.size()<<"for process id: "<<getpid()<<endl;
+\
+
+        printLayer();
+
+
+
+        // // Create a semaphore for each neuron
+        // for (int i = 0; i < neurons.size(); i++) {
+        //     sem_t* sem = new sem_t;
+        //     sem_init(sem, 0, 0);
+        //     sems.push_back(sem);
+        // }
+
+        //coutnign semaphore for number of threads
+        sem_init(&threadSem, 0,8);
 
         // Create a thread for each neuron
         for (int i = 0; i < neurons.size(); i++) {
@@ -54,16 +68,36 @@ public:
             pthread_create(&threads[i], nullptr, &Layer::NeuronThreadWrapper, reinterpret_cast<void*>(index));
         }
 
-        // Wait for all threads to complete
-        for (int i = 0; i < neurons.size(); i++) {
-            sem_wait(sems[i]);
-        }
 
-        // Clean up
-        for (int i = 0; i < neurons.size(); i++) {
-            sem_destroy(sems[i]);
-            delete sems[i];
-        }
+
+
+        //print semaphore value
+        int* value= new int;
+        sem_getvalue(&threadSem, value);
+        // cout << "SEMSEMSEMSEM value: " << *value << endl;
+
+
+
+        // Wait for all threads to complete
+
+        //check if semaphore is 0
+        while(*value != 0){
+            sem_getvalue(&threadSem, value);
+            // cout << "SEMSEMSEMSEM value: " << *value << endl;
+            sleep(1);
+        }       
+
+ 
+
+
+        
+
+        sem_destroy(&threadSem);
+
+        //clean up threads and semaphores
+
+
+
     }
 
     // Static wrapper function for thread
@@ -77,6 +111,18 @@ public:
 
         // Call the member function
         layer->NeuronThread(index);
+
+
+
+        //print semaphore value
+
+
+
+  
+        //end of thread
+        pthread_exit(NULL);
+
+
         return nullptr;
     }
 
@@ -84,13 +130,24 @@ public:
     void NeuronThread(int index) {
         // Do some work...
         cout << "Neuron " << index << " is working..." << endl;
-        sleep(1);
-        cout.flush();
+                cout.flush();
+
+        sleep(2);
+
+
+        //print semaphore value
+
+
+
 
         // Signal completion by incrementing the semaphore
-        sem_post(sems[index]);
+        sem_trywait(&threadSem);
+ 
+
+
+        
     }
 };
 
 // Define the static member variable outside of the class definition
-vector<sem_t*> Layer::sems;
+// vector<sem_t*> Layer::sems;
