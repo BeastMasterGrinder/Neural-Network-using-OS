@@ -5,10 +5,27 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <fcntl.h>
+
+
 //time
 #include <ctime>
 
 using namespace std;
+
+// Defining debug constants booleans
+#define DEBUG 1
+#define DEBUG_PIPE 0
+
+
+
+
+
+
 
 class Neurons {
 public:
@@ -21,7 +38,143 @@ public:
     // static vector<sem_t*> sems;  // Define the static member variable
     sem_t threadSem;
 
-    void setUpLayer(const vector<vector<double>>& LayerWeights) {
+    //the inputs recieved from the previous layer
+    vector<double> inputs;
+
+    //the outputs of the layer
+    vector<double> outputs;
+
+    int fd;
+   
+
+
+
+    // Constructor
+
+    Layer() {
+       
+
+
+
+
+
+    }
+
+  
+  void printInputs(){
+      cout<<"Inputs: "<<endl;
+      for(int i=0; i<inputs.size(); i++){
+          cout<<inputs[i]<<" ";
+      }
+      cout<<endl;
+
+            cout.flush();
+
+
+  }
+
+  void printOutputs(){
+      cout<<"Outputs: "<<endl;
+      for(int i=0; i<outputs.size(); i++){
+          cout<<outputs[i]<<" ";
+      }
+      cout<<endl;
+      cout.flush();
+  }
+
+
+    void writeToPipe() {
+
+        //add dummy pid to the vector
+        outputs.push_back(getpid());
+
+        //first write the size of the vector
+        int size=outputs.size();
+        if (write(fd, &size, sizeof(size)) == -1) {
+            perror("write");
+            exit(EXIT_FAILURE);
+        }
+
+
+
+
+        // Write to the pipe
+        if (write(fd, outputs.data(), outputs.size() * sizeof(double)) == -1) {
+            perror("write");
+            exit(EXIT_FAILURE);
+        }
+
+        if (DEBUG && DEBUG_PIPE)
+        {
+            cout<<"Wrote to pipe: "<<endl;
+                    //print the output
+                    for (int i = 0; i < outputs.size(); i++) {
+                        cout << outputs[i] << " ";
+            }
+
+        cout.flush();
+
+
+
+
+        }
+
+        
+    }
+
+    void readFromPipe() {
+
+        // Read from the pipe
+        
+        int size;
+        if (read(fd, &size, sizeof(size)) == -1) {
+            perror("read");
+            exit(EXIT_FAILURE);
+        }
+
+
+        if (DEBUG && DEBUG_PIPE)
+        {
+            cout<<"Read from pipe: "<<endl;
+            cout<<"Size: "<<size<<endl;
+        }
+
+  
+
+        //resize the vector
+        inputs.resize(size);
+
+        if (read(fd, inputs.data(), inputs.size() * sizeof(double)) == -1) {
+            perror("read");
+            exit(EXIT_FAILURE);
+        }
+
+
+        if (DEBUG && DEBUG_PIPE)
+        {
+               //print the input
+        for (int i = 0; i < inputs.size(); i++) {
+            cout << inputs[i] << " ";
+        }
+
+        cout<<endl;
+       
+
+       cout.flush();
+        }
+
+     
+
+        
+    }
+
+
+    // Set up the layer
+    void setUpLayer(const vector<vector<double>>& LayerWeights, int fd) {
+        
+        //set up pipe
+        this->fd=fd;
+
         for (const auto& weights : LayerWeights) {
             Neurons n;
             n.weights = weights;
@@ -37,6 +190,38 @@ public:
             }
             cout << endl;
         }
+    }
+
+    ~Layer() {
+        
+        //delete neurons
+        for (int i = 0; i < neurons.size(); i++) {
+            delete &neurons[i];
+        }
+
+        //clear the vector
+        neurons.clear();
+
+        //unlink the pipe
+
+
+
+
+
+
+    }
+
+
+
+    void setInput() {
+        
+        //read from pipe
+        //copy the input to the input vector
+        
+        
+
+
+
     }
 
     void runNeuronThreads() {
@@ -128,14 +313,40 @@ public:
 
     // Member function for thread
     void NeuronThread(int index) {
-        // Do some work...
-        cout << "Neuron " << index << " is working..." << endl;
-                cout.flush();
+        // // Do some work...
+        // cout << "Neuron " << index << " is working..." << endl;
+        //         cout.flush();
 
-        sleep(2);
+        // sleep(2);
 
 
-        //print semaphore value
+        // //print semaphore value
+
+
+        //based of index get the weights 
+        vector<double> weights=neurons[index].weights;
+
+        //multiply the weights with the inputs
+        double sum=0;
+        for(int i=0; i<weights.size(); i++){
+            sum+=weights[i]*inputs[i];
+        }
+
+
+        //apply activation function
+        double output;
+        // output=1/(1+exp(-sum));
+        output=sum;
+
+        //add the output to the output vector at index 
+        outputs[index]=output;
+
+      
+
+        //print the output
+        cout<<"Output of neuron "<<index<<" is: "<<output<<endl;
+
+
 
 
 

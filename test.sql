@@ -141,7 +141,13 @@ CREATE TABLE Feedback (
   StudentID INT,
   FacultyID INT,
   CourseID INT,
+  Metric1 INT,
+  Metric2 INT,
+  Metric3 INT,
+  Metric4 INT,
   FeedbackText VARCHAR(255),
+
+
 FOREIGN KEY (StudentID) REFERENCES Students(StudentID),
 FOREIGN KEY (FacultyID) REFERENCES Faculty(FacultyID),
 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
